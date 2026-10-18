@@ -1,0 +1,4 @@
+.env
+broker/passwords
+sam-dashboard/.aws-sam/
+

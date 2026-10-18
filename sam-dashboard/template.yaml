@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Transform: AWS::Serverless-2016-10-31
+
+Description: Smartcollar frontend ingestion
+
+Resources:
+
+  SmartCollarHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: $default
+
+  # lambda 1: latest telemetry
+
+  LatestTelemetryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.12
+      Handler: app.handler
+      CodeUri: api/
+      MemorySize: 256
+      Timeout: 15
+
+      Environment:
+        Variables:
+          DYNAMO_ENDPOINT: http://collar-dynamo:8000
+          DYNAMO_TABLE: SmartCollarTelemetry
+
+      Events:
+        GetLatestTelemetry:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SmartCollarHttpApi
+            Path: /api/devices/{device_id}/latest
+            Method: GET
+
+  # lambda 2: motion averages
+
+  MotionAverageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.12
+      Handler: motion.handler
+      CodeUri: api/
+      MemorySize: 256
+      Timeout: 30
+
+      Environment:
+        Variables:
+          DYNAMO_ENDPOINT: http://collar-dynamo:8000
+          DYNAMO_TABLE: SmartCollarTelemetry
+
+      Events:
+        GetMotionAverage:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SmartCollarHttpApi
+            Path: /api/devices/{device_id}/motion/average
+            Method: GET
+
+  # lambda 3: distance statistics
+
+  DistanceSummaryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.12
+      Handler: distance.handler
+      CodeUri: api/
+      MemorySize: 256
+      Timeout: 30
+
+      Environment:
+        Variables:
+          DYNAMO_ENDPOINT: http://collar-dynamo:8000
+          DYNAMO_TABLE: SmartCollarTelemetry
+
+      Events:
+        GetDistanceSummary:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SmartCollarHttpApi
+            Path: /api/devices/{device_id}/distance/summary
+            Method: GET
